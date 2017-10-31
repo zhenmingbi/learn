@@ -2,6 +2,7 @@ import edu.neu.ccs.pyramid.dataset.*;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -11,7 +12,8 @@ import java.util.stream.Collectors;
 /**
  * Created by zhenming on 10/22/17.
  */
-public class RegDataSetRegressionTree {
+public class RegDataSetRegressionTree implements Serializable {
+    private static final long serialVersionUID = 1L;
     TreeNode root = new TreeNode();
 
 
@@ -166,7 +168,7 @@ public class RegDataSetRegressionTree {
         return res;
     }
 
-    public void fit(DataSet x, double[] y) {
+    public void fit(DataSet x, double[] y, int numofLeaf) {
         int l = y.length;
         root.bol = new boolean[l];
         Arrays.fill(root.bol, true);
@@ -183,7 +185,7 @@ public class RegDataSetRegressionTree {
         PriorityQueue<TreeNode> pQueue = new PriorityQueue<TreeNode>(comparator);
         pQueue.add(root);
         int count_leaf = 1;
-        while (count_leaf < 2) {
+        while (count_leaf < numofLeaf) {
             TreeNode node = pQueue.poll();
             if (MyMath.bsum(node.bol) > 5) {
                 TreeNode left_child = new TreeNode();
@@ -202,22 +204,24 @@ public class RegDataSetRegressionTree {
                     }
                 }
                 left_child.val = avg(y, left_child.bol);
-                Result left_res = splitnodes(x, y, left_child.bol);
-                left_child.index = left_res.index;
-                left_child.threshold = left_res.threshold;
-                left_child.objective = left_res.bestValue;
-                node.left = left_child;
-                if (left_child.objective != Double.NEGATIVE_INFINITY) {
-                    pQueue.add(left_child);
-                }
                 right_child.val = avg(y, right_child.bol);
-                Result right_res = splitnodes(x, y, right_child.bol);
-                right_child.index = right_res.index;
-                right_child.threshold = right_res.threshold;
-                right_child.objective = right_res.bestValue;
+                node.left = left_child;
                 node.right = right_child;
-                if (right_child.objective != Double.NEGATIVE_INFINITY) {
-                    pQueue.add(right_child);
+                if(count_leaf<numofLeaf-1){
+                    Result left_res = splitnodes(x, y, left_child.bol);
+                    left_child.index = left_res.index;
+                    left_child.threshold = left_res.threshold;
+                    left_child.objective = left_res.bestValue;
+                    if (left_child.objective != Double.NEGATIVE_INFINITY) {
+                        pQueue.add(left_child);
+                    }
+                    Result right_res = splitnodes(x, y, right_child.bol);
+                    right_child.index = right_res.index;
+                    right_child.threshold = right_res.threshold;
+                    right_child.objective = right_res.bestValue;
+                    if (right_child.objective != Double.NEGATIVE_INFINITY) {
+                        pQueue.add(right_child);
+                    }
                 }
                 count_leaf++;
                 node.bol = null;
@@ -307,7 +311,7 @@ public class RegDataSetRegressionTree {
         RegDataSet x_train = TRECFormat.loadRegDataSet("/Users/zhenming/researchData/E2006/train", DataSetType.REG_SPARSE, true);
         double[] y_train = x_train.getLabels();
         RegDataSetRegressionTree regressor = new RegDataSetRegressionTree();
-        regressor.fit(x_train, y_train);
+        regressor.fit(x_train, y_train,2);
         x_train = null;
 //        RegDataSet x_test=TRECFormat.loadRegDataSet("/Users/zhenming/Learn/E2006/test", DataSetType.REG_SPARSE, true)
 //        double[] y_test=x_test.getLabels();

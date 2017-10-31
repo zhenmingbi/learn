@@ -7,7 +7,8 @@ import java.util.*;
 /**
  * Created by zhenming on 10/16/17.
  */
-public class TreeNode {
+public class TreeNode implements Serializable{
+    private static final long serialVersionUID = 1L;
     public double val;
     public double threshold;
     public int index;

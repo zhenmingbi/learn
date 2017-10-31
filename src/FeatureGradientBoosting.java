@@ -2,11 +2,13 @@ import edu.neu.ccs.pyramid.configuration.Config;
 import edu.neu.ccs.pyramid.dataset.DataSetType;
 import edu.neu.ccs.pyramid.dataset.RegDataSet;
 import edu.neu.ccs.pyramid.dataset.TRECFormat;
+import edu.neu.ccs.pyramid.util.Serialization;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.mahout.math.Vector;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,11 +17,12 @@ import java.util.List;
 /**
  * Created by zhenming on 10/23/17.
  */
-public class FeatureGradientBoosting {
+public class FeatureGradientBoosting implements Serializable {
+    private static final long serialVersionUID = 1L;
     List<FeatureRegressionTree> trees=new ArrayList<>();
     double prior;
-    RegDataSet dataSet;
-    double[] f;
+    transient RegDataSet dataSet;
+    transient double[] f;
     int numActiveFeatures;
 
     public FeatureGradientBoosting(RegDataSet dataSet, int numActiveFeatures) {
@@ -62,7 +65,7 @@ public class FeatureGradientBoosting {
             r[i]=y[i]-f[i];
         }
         FeatureRegressionTree regressor=new FeatureRegressionTree(numActiveFeatures);
-        List<Integer> flist=regressor.fit(dataSet, r);
+        List<Integer> flist=regressor.fit(dataSet, r,2);
         trees.add(regressor);
         for (int j=0; j<l; j++){
             f[j]+=0.1*regressor.single_predict(dataSet.getRow(j));
@@ -78,7 +81,7 @@ public class FeatureGradientBoosting {
             r[i]=y[i]-f[i];
         }
         FeatureRegressionTree regressor=new FeatureRegressionTree(numActiveFeatures);
-        regressor.fit(dataSet, r, flist );
+        regressor.fit(dataSet, r, flist ,2);
         trees.add(regressor);
         for (int j=0; j<l; j++){
             f[j]+=0.1*regressor.single_predict(dataSet.getRow(j));
@@ -121,10 +124,13 @@ public class FeatureGradientBoosting {
 
         }
 
+
         System.out.println(rmse);
 
         File outputDir = new File(config.getString("output"));
         outputDir.mkdirs();
+        File model=new File(outputDir, "model");
+        Serialization.serialize(regressor,model);
         File rmseFile = new File(outputDir,"rmse");
         FileUtils.writeStringToFile(rmseFile, rmse.toString());
         config.store(new File(outputDir,"config"));

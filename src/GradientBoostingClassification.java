@@ -3,11 +3,13 @@ import edu.neu.ccs.pyramid.dataset.ClfDataSet;
 import edu.neu.ccs.pyramid.dataset.DataSetType;
 import edu.neu.ccs.pyramid.dataset.TRECFormat;
 import edu.neu.ccs.pyramid.util.MathUtil;
+import edu.neu.ccs.pyramid.util.Serialization;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.mahout.math.Vector;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,11 +17,12 @@ import java.util.List;
 /**
  * Created by zhenming on 10/28/17.
  */
-public class GradientBoostingClassification {
+public class GradientBoostingClassification implements Serializable {
+        private static final long serialVersionUID = 1L;
         List<List<RegDataSetRegressionTree>> trees=new ArrayList<>();
         double[] prior;
-        ClfDataSet dataSet;
-        double[][] f;
+        transient ClfDataSet dataSet;
+        transient double[][] f;
 
 
         public GradientBoostingClassification(ClfDataSet dataSet) {
@@ -111,7 +114,7 @@ public class GradientBoostingClassification {
 
             for(int i=0;i<m;i++){
                 RegDataSetRegressionTree regressor=new RegDataSetRegressionTree();
-                regressor.fit(dataSet, r[i]);
+                regressor.fit(dataSet, r[i],2);
                 trees.get(i).add(regressor);
                 for(int j=0;j<l;j++){
                     f[j][i]+=0.1*regressor.single_predict(dataSet.getRow(j));
@@ -152,6 +155,8 @@ public class GradientBoostingClassification {
 
             File outputDir = new File(config.getString("output"));
             outputDir.mkdirs();
+            File model=new File(outputDir, "model");
+            Serialization.serialize(regressor,model);
             File accuracyFile = new File(outputDir,"accuracy");
             FileUtils.writeStringToFile(accuracyFile, accuracy.toString());
             config.store(new File(outputDir,"config"));
